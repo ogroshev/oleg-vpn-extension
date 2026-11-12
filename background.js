@@ -64,7 +64,9 @@ async function validateLink(sublink) {
     if (!text.trim()) return { ok: false, error: "Ссылка не распознана" };
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: "Не удалось проверить ссылку" };
+    // Сетевой сбой/таймаут — не доказывает, что ссылка плохая. Пропускаем
+    // (fail-open): если код неверный, прокси всё равно не пустит заблок. сайты.
+    return { ok: true };
   }
 }
 
