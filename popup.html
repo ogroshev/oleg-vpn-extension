@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --fg: #1f2328;
+    --muted: #6b7482;
+    --faint: #9aa3b0;
+    --border: #e3e8ef;
+    --input-bg: #ffffff;
+    --input-border: #d6dce6;
+    --input-focus: #3b82f6;
+    --accent: #2563eb;
+    --on: #16a34a;
+    --on-soft: rgba(22, 163, 74, 0.14);
+    --on-ring: rgba(22, 163, 74, 0.28);
+    --off: #94a3b8;
+    --off-soft: rgba(148, 163, 184, 0.16);
+    --danger: #dc2626;
+    --hint-bg: #eef2f8;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141b;
+      --card: #171d26;
+      --fg: #e7ecf3;
+      --muted: #9aa5b4;
+      --faint: #6b7686;
+      --border: #273040;
+      --input-bg: #10161e;
+      --input-border: #2c3545;
+      --input-focus: #3b82f6;
+      --accent: #3b82f6;
+      --on: #34d399;
+      --on-soft: rgba(52, 211, 153, 0.16);
+      --on-ring: rgba(52, 211, 153, 0.30);
+      --off: #64748b;
+      --off-soft: rgba(100, 116, 139, 0.20);
+      --danger: #f87171;
+      --hint-bg: #121820;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    width: 300px;
+  }
+
+  body {
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 16px;
+  }
+  .brand .logo {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    color: var(--accent);
+  }
+  .brand .name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .brand .name span { color: var(--accent); }
+  .brand .tag {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 18px 16px 16px;
+  }
+
+  /* ——— Главный переключатель ——— */
+  .power-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0 14px;
+  }
+
+  .power {
+    position: relative;
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    border: 0;
+    cursor: pointer;
+    background: var(--off-soft);
+    color: var(--off);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .25s ease, color .25s ease, box-shadow .25s ease, transform .1s ease;
+    outline: none;
+  }
+  .power::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: border-color .25s ease;
+  }
+  .power svg { width: 46px; height: 46px; }
+  .power:hover { transform: translateY(-1px); }
+  .power:active { transform: scale(0.97); }
+  .power:focus-visible { box-shadow: 0 0 0 3px var(--on-ring); }
+
+  .power.on {
+    background: var(--on-soft);
+    color: var(--on);
+    box-shadow: 0 0 0 1px var(--on-ring);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .power.on::before { border-color: var(--on-ring); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--on-ring), 0 0 0 0 var(--on-ring); }
+    50%      { box-shadow: 0 0 0 1px var(--on-ring), 0 0 0 10px rgba(22,163,74,0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .power.on { animation: none; }
+  }
+
+  .power-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    user-select: none;
+  }
+
+  /* ——— Статус ——— */
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--off-soft);
+    transition: color .25s ease, background .25s ease;
+  }
+  .status .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--off);
+    flex: 0 0 auto;
+  }
+  .status.on {
+    color: var(--on);
+    background: var(--on-soft);
+  }
+  .status.on .dot {
+    background: var(--on);
+    box-shadow: 0 0 0 0 var(--on-ring);
+    animation: dotpulse 2.4s ease-in-out infinite;
+  }
+  @keyframes dotpulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--on-ring); }
+    50%      { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status.on .dot { animation: none; }
+  }
+  .status.error { color: var(--danger); background: transparent; }
+  .status.error .dot { background: var(--danger); }
+
+  /* ——— Поля ——— */
+  .fields { margin-top: 16px; }
+  .field { margin-top: 10px; }
+  .field:first-child { margin-top: 0; }
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--muted);
+    margin: 0 0 5px 2px;
+    text-transform: uppercase;
+  }
+  .input-row { position: relative; }
+  input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--input-border);
+    border-radius: 9px;
+    font-size: 13px;
+    color: var(--fg);
+    background: var(--input-bg);
+    transition: border-color .15s ease, box-shadow .15s ease;
+    font-family: inherit;
+  }
+  input::placeholder { color: var(--faint); }
+  input:focus {
+    outline: none;
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  }
+  #password { padding-right: 40px; }
+
+  .reveal {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .reveal:hover { color: var(--muted); }
+  .reveal svg { width: 17px; height: 17px; }
+
+  /* ——— Подсказка ——— */
+  .hint {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 11px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--muted);
+    background: var(--hint-bg);
+    border-radius: 10px;
+  }
+  .hint svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <!-- Щит-логотип -->
+    <svg class="logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.5l7 2.8v5.1c0 4.4-2.9 8.1-7 9.3-4.1-1.2-7-4.9-7-9.3V5.3l7-2.8z"
+            fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M8.6 12.1l2.3 2.3 4.5-4.6" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="name">Oleg<span>VPN</span></div>
+    <div class="tag">защита</div>
+  </div>
+
+  <div class="card">
+    <div class="power-wrap">
+      <button id="toggle" class="power off" type="button" aria-pressed="false" title="Включить / выключить VPN">
+        <!-- иконка питания / щита -->
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l6.5 2.6v4.9c0 4-2.7 7.5-6.5 8.6-3.8-1.1-6.5-4.6-6.5-8.6V5.6L12 3z"
+                fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M12 7.3v5.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          <path d="M9 9.1a4 4 0 106 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="power-label" id="powerLabel">Нажми, чтобы включить</div>
+    </div>
+
+    <div class="status off" id="status" role="status" aria-live="polite">
+      <span class="dot"></span>
+      <span id="statusText">Отключено</span>
+    </div>
+
+    <div class="fields">
+      <div class="field">
+        <label for="username">Логин</label>
+        <div class="input-row">
+          <input id="username" type="text" autocomplete="off" autocapitalize="off"
+                 spellcheck="false" placeholder="ваш логин">
+        </div>
+      </div>
+      <div class="field">
+        <label for="password">Пароль</label>
+        <div class="input-row">
+          <input id="password" type="password" autocomplete="off" placeholder="ваш пароль">
+          <button type="button" class="reveal" id="reveal" title="Показать пароль" aria-label="Показать пароль">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2.5 12S5.8 5.5 12 5.5 21.5 12 21.5 12 18.2 18.5 12 18.5 2.5 12 2.5 12z"
+                    stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="12" cy="8" r="1" fill="currentColor"/>
+    </svg>
+    <div>Весь трафик браузера идёт через VPN. Логин и пароль — у владельца прокси.</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
