@@ -51,8 +51,14 @@ function render(on) {
 }
 
 function showError(text) {
+  btn.className = "power off";
   status.className = "status error";
   statusText.textContent = text;
+}
+
+function showChecking() {
+  status.className = "status off";
+  statusText.textContent = "Проверяем ссылку…";
 }
 
 // сохранять ссылку при вводе
@@ -76,7 +82,11 @@ btn.addEventListener("click", async () => {
     if (!short) { showError("Вставьте ссылку подписки"); return; }
     // login = password = короткий код из ссылки (его ждёт прокси в background.js)
     await chrome.storage.local.set({ sublink: link.value.trim(), username: short, password: short });
-    chrome.runtime.sendMessage({ action: "connect" }, () => render(true));
+    showChecking();
+    chrome.runtime.sendMessage({ action: "connect" }, (r) => {
+      if (r && r.ok) render(true);
+      else showError((r && r.error) || "Не удалось подключиться");
+    });
   } else {
     chrome.runtime.sendMessage({ action: "disconnect" }, () => render(false));
   }

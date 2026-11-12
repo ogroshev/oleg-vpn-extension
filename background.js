@@ -48,29 +48,57 @@ async function getCreds() {
   return { username: s.username || "", password: s.password || "" };
 }
 
-async function connect() {
-  const { mode } = await chrome.storage.local.get("mode");
-  let value;
-  if (mode === "blocked") {
-    value = { mode: "pac_script", pacScript: { data: buildPac() } };
-  } else {
-    value = {
-      mode: "fixed_servers",
-      rules: {
-        singleProxy: { scheme: "https", host: PROXY_HOST, port: PROXY_PORT },
-        bypassList: ["localhost", "127.0.0.1", "[::1]", "<local>"]
-      }
-    };
+// Проверяем, что ссылка подписки живая (отдаёт конфиг). Фетч идёт напрямую,
+// до включения прокси. Если это не URL — пропускаем (проверит сам прокси).
+async function validateLink(sublink) {
+  let url;
+  try { url = new URL(sublink); } catch (e) { return { ok: true }; }
+  if (!/^https?:$/.test(url.protocol)) return { ok: true };
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    const res = await fetch(url.toString(), { signal: ctl.signal, cache: "no-store", redirect: "follow" });
+    clearTimeout(t);
+    if (!res.ok) return { ok: false, error: "Ссылка не распознана" };
+    const text = await res.text();
+    if (!text.trim()) return { ok: false, error: "Ссылка не распознана" };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: "Не удалось проверить ссылку" };
   }
-  await chrome.proxy.settings.set({ value, scope: "regular" });
+}
+
+function proxyValue(mode) {
+  if (mode === "blocked") {
+    return { mode: "pac_script", pacScript: { data: buildPac() } };
+  }
+  return {
+    mode: "fixed_servers",
+    rules: {
+      singleProxy: { scheme: "https", host: PROXY_HOST, port: PROXY_PORT },
+      bypassList: ["localhost", "127.0.0.1", "[::1]", "<local>"]
+    }
+  };
+}
+
+async function connect() {
+  const s = await chrome.storage.local.get(["mode", "sublink", "connected"]);
+  // Валидируем ссылку только на первом подключении (не при смене режима).
+  if (!s.connected) {
+    const v = await validateLink(s.sublink || "");
+    if (!v.ok) return v; // прокси не включаем
+  }
+  await chrome.proxy.settings.set({ value: proxyValue(s.mode), scope: "regular" });
   await chrome.storage.local.set({ connected: true });
   setBadge(true);
+  return { ok: true };
 }
 
 async function disconnect() {
   await chrome.proxy.settings.set({ value: { mode: "direct" }, scope: "regular" });
   await chrome.storage.local.set({ connected: false });
   setBadge(false);
+  return { ok: true };
 }
 
 function setBadge(on) {
@@ -95,8 +123,8 @@ chrome.webRequest.onAuthRequired.addListener(
 
 // Команды из попапа
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.action === "connect") connect().then(() => sendResponse({ ok: true }));
-  else if (msg.action === "disconnect") disconnect().then(() => sendResponse({ ok: true }));
+  if (msg.action === "connect") connect().then((r) => sendResponse(r));
+  else if (msg.action === "disconnect") disconnect().then((r) => sendResponse(r));
   else if (msg.action === "status") {
     chrome.storage.local.get("connected").then((s) => sendResponse({ connected: !!s.connected }));
   }
