@@ -3,7 +3,8 @@ const link = $("sublink"),
       btn = $("toggle"),
       status = $("status"),
       statusText = $("statusText"),
-      powerLabel = $("powerLabel");
+      powerLabel = $("powerLabel"),
+      modesEl = $("modes");
 
 // Достаём короткий код (shortUuid) из ссылки подписки — последний сегмент пути.
 function extractShort(input) {
@@ -19,9 +20,15 @@ function extractShort(input) {
   return seg.length ? seg[seg.length - 1] : v;
 }
 
+function renderMode(m) {
+  [...modesEl.querySelectorAll(".mode")].forEach((b) =>
+    b.classList.toggle("active", b.dataset.mode === m));
+}
+
 // загрузить сохранённое
-chrome.storage.local.get(["sublink", "connected"]).then((s) => {
+chrome.storage.local.get(["sublink", "connected", "mode"]).then((s) => {
   if (s.sublink) link.value = s.sublink;
+  renderMode(s.mode || "all");
   render(!!s.connected);
 });
 
@@ -50,6 +57,17 @@ function showError(text) {
 
 // сохранять ссылку при вводе
 link.addEventListener("input", () => chrome.storage.local.set({ sublink: link.value.trim() }));
+
+// выбор режима (весь браузер / только заблокированные)
+modesEl.addEventListener("click", async (e) => {
+  const b = e.target.closest(".mode");
+  if (!b) return;
+  const m = b.dataset.mode;
+  renderMode(m);
+  await chrome.storage.local.set({ mode: m });
+  const s = await chrome.storage.local.get("connected");
+  if (s.connected) chrome.runtime.sendMessage({ action: "connect" }); // переприменить на лету
+});
 
 btn.addEventListener("click", async () => {
   const s = await chrome.storage.local.get("connected");

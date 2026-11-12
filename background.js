@@ -8,20 +8,61 @@
 const PROXY_HOST = "your-proxy.example.com"; // ← адрес вашего прокси
 const PROXY_PORT = 443;                      // ← порт (обычно 443)
 
+// Домены, которые идут через VPN в режиме «Только заблокированные».
+// Всё остальное — напрямую. Добавляйте свои по аналогии (суффикс домена).
+const BLOCKED = [
+  "instagram.com", "cdninstagram.com", "ig.me",
+  "facebook.com", "fbcdn.net", "fb.com", "fbsbx.com",
+  "twitter.com", "x.com", "t.co", "twimg.com",
+  "telegram.org", "t.me", "telegram.me", "telesco.pe", "tdesktop.com",
+  "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "ggpht.com",
+  "linkedin.com", "licdn.com",
+  "soundcloud.com", "sndcdn.com",
+  "spotify.com", "scdn.co", "spotifycdn.com",
+  "discord.com", "discord.gg", "discordapp.com", "discordapp.net", "discord.media",
+  "signal.org",
+  "openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com",
+  "anthropic.com", "claude.ai",
+  "notion.so", "notion.site",
+  "medium.com", "patreon.com",
+  "bbc.com", "bbc.co.uk",
+  "proton.me", "protonmail.com"
+];
+
+// PAC: заблокированные домены → прокси, остальное → напрямую.
+function buildPac() {
+  return [
+    "function FindProxyForURL(url, host) {",
+    "  var B = " + JSON.stringify(BLOCKED) + ";",
+    "  for (var i = 0; i < B.length; i++) {",
+    "    if (host === B[i] || shExpMatch(host, '*.' + B[i]))",
+    "      return 'HTTPS " + PROXY_HOST + ":" + PROXY_PORT + "';",
+    "  }",
+    "  return 'DIRECT';",
+    "}"
+  ].join("\n");
+}
+
 async function getCreds() {
   const s = await chrome.storage.local.get(["username", "password"]);
   return { username: s.username || "", password: s.password || "" };
 }
 
 async function connect() {
-  const config = {
-    mode: "fixed_servers",
-    rules: {
-      singleProxy: { scheme: "https", host: PROXY_HOST, port: PROXY_PORT },
-      bypassList: ["localhost", "127.0.0.1", "[::1]", "<local>"]
-    }
-  };
-  await chrome.proxy.settings.set({ value: config, scope: "regular" });
+  const { mode } = await chrome.storage.local.get("mode");
+  let value;
+  if (mode === "blocked") {
+    value = { mode: "pac_script", pacScript: { data: buildPac() } };
+  } else {
+    value = {
+      mode: "fixed_servers",
+      rules: {
+        singleProxy: { scheme: "https", host: PROXY_HOST, port: PROXY_PORT },
+        bypassList: ["localhost", "127.0.0.1", "[::1]", "<local>"]
+      }
+    };
+  }
+  await chrome.proxy.settings.set({ value, scope: "regular" });
   await chrome.storage.local.set({ connected: true });
   setBadge(true);
 }
