@@ -300,23 +300,10 @@
 
     <div class="fields">
       <div class="field">
-        <label for="username">Логин</label>
+        <label for="sublink">Ссылка подписки</label>
         <div class="input-row">
-          <input id="username" type="text" autocomplete="off" autocapitalize="off"
-                 spellcheck="false" placeholder="ваш логин">
-        </div>
-      </div>
-      <div class="field">
-        <label for="password">Пароль</label>
-        <div class="input-row">
-          <input id="password" type="password" autocomplete="off" placeholder="ваш пароль">
-          <button type="button" class="reveal" id="reveal" title="Показать пароль" aria-label="Показать пароль">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M2.5 12S5.8 5.5 12 5.5 21.5 12 21.5 12 18.2 18.5 12 18.5 2.5 12 2.5 12z"
-                    stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-              <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.6"/>
-            </svg>
-          </button>
+          <input id="sublink" type="text" autocomplete="off" autocapitalize="off"
+                 spellcheck="false" placeholder="https://.../ваш-код">
         </div>
       </div>
     </div>
@@ -328,7 +315,7 @@
       <path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       <circle cx="12" cy="8" r="1" fill="currentColor"/>
     </svg>
-    <div>Весь трафик браузера идёт через VPN. Логин и пароль — у владельца прокси.</div>
+    <div>Вставьте свою ссылку подписки — ту же, что для VPN. Весь трафик браузера пойдёт через VPN.</div>
   </div>
 
   <script src="popup.js"></script>

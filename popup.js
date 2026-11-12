@@ -1,16 +1,27 @@
 const $ = (id) => document.getElementById(id);
-const u = $("username"),
-      p = $("password"),
+const link = $("sublink"),
       btn = $("toggle"),
       status = $("status"),
       statusText = $("statusText"),
-      powerLabel = $("powerLabel"),
-      reveal = $("reveal");
+      powerLabel = $("powerLabel");
+
+// Достаём короткий код (shortUuid) из ссылки подписки — последний сегмент пути.
+function extractShort(input) {
+  let v = (input || "").trim();
+  if (!v) return "";
+  try {
+    const u = new URL(v);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  } catch (e) { /* не полный URL — разберём как строку */ }
+  v = v.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  const seg = v.split("/").filter(Boolean);
+  return seg.length ? seg[seg.length - 1] : v;
+}
 
 // загрузить сохранённое
-chrome.storage.local.get(["username", "password", "connected"]).then((s) => {
-  if (s.username) u.value = s.username;
-  if (s.password) p.value = s.password;
+chrome.storage.local.get(["sublink", "connected"]).then((s) => {
+  if (s.sublink) link.value = s.sublink;
   render(!!s.connected);
 });
 
@@ -37,26 +48,16 @@ function showError(text) {
   statusText.textContent = text;
 }
 
-// сохранять креды при вводе
-u.addEventListener("input", () => chrome.storage.local.set({ username: u.value.trim() }));
-p.addEventListener("input", () => chrome.storage.local.set({ password: p.value }));
-
-// показать/скрыть пароль
-reveal.addEventListener("click", () => {
-  const hidden = p.type === "password";
-  p.type = hidden ? "text" : "password";
-  reveal.title = hidden ? "Скрыть пароль" : "Показать пароль";
-  reveal.setAttribute("aria-label", reveal.title);
-});
+// сохранять ссылку при вводе
+link.addEventListener("input", () => chrome.storage.local.set({ sublink: link.value.trim() }));
 
 btn.addEventListener("click", async () => {
   const s = await chrome.storage.local.get("connected");
   if (!s.connected) {
-    if (!u.value.trim() || !p.value) {
-      showError("Введите логин и пароль");
-      return;
-    }
-    await chrome.storage.local.set({ username: u.value.trim(), password: p.value });
+    const short = extractShort(link.value);
+    if (!short) { showError("Вставьте ссылку подписки"); return; }
+    // login = password = короткий код из ссылки (его ждёт прокси в background.js)
+    await chrome.storage.local.set({ sublink: link.value.trim(), username: short, password: short });
     chrome.runtime.sendMessage({ action: "connect" }, () => render(true));
   } else {
     chrome.runtime.sendMessage({ action: "disconnect" }, () => render(false));
