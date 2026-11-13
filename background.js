@@ -48,25 +48,19 @@ async function getCreds() {
   return { username: s.username || "", password: s.password || "" };
 }
 
-// Проверяем, что ссылка подписки живая (отдаёт конфиг). Фетч идёт напрямую,
-// до включения прокси. Если это не URL — пропускаем (проверит сам прокси).
-async function validateLink(sublink) {
-  let url;
-  try { url = new URL(sublink); } catch (e) { return { ok: true }; }
-  if (!/^https?:$/.test(url.protocol)) return { ok: true };
+// Прямая проверка: пробуем сам прокси с введённым кодом. Ставим прокси на
+// весь трафик и дёргаем generate_204 — прокси пустил (резолв) → код рабочий;
+// отбил по 407 (неверный код) → fetch падает. Так проверяем именно доступ.
+async function probeProxy() {
+  await chrome.proxy.settings.set({ value: proxyValue("all"), scope: "regular" });
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 8000);
-    const res = await fetch(url.toString(), { signal: ctl.signal, cache: "no-store", redirect: "follow" });
+    const t = setTimeout(() => ctl.abort(), 9000);
+    await fetch("https://www.gstatic.com/generate_204", { signal: ctl.signal, cache: "no-store" });
     clearTimeout(t);
-    if (!res.ok) return { ok: false, error: "Ссылка не распознана" };
-    const text = await res.text();
-    if (!text.trim()) return { ok: false, error: "Ссылка не распознана" };
     return { ok: true };
   } catch (e) {
-    // Сетевой сбой/таймаут — не доказывает, что ссылка плохая. Пропускаем
-    // (fail-open): если код неверный, прокси всё равно не пустит заблок. сайты.
-    return { ok: true };
+    return { ok: false, error: "Ссылка не принята — проверьте её" };
   }
 }
 
@@ -84,11 +78,14 @@ function proxyValue(mode) {
 }
 
 async function connect() {
-  const s = await chrome.storage.local.get(["mode", "sublink", "connected"]);
-  // Валидируем ссылку только на первом подключении (не при смене режима).
+  const s = await chrome.storage.local.get(["mode", "connected"]);
+  // Проверяем доступ только на первом подключении (не при смене режима).
   if (!s.connected) {
-    const v = await validateLink(s.sublink || "");
-    if (!v.ok) return v; // прокси не включаем
+    const v = await probeProxy();
+    if (!v.ok) {
+      await chrome.proxy.settings.set({ value: { mode: "direct" }, scope: "regular" });
+      return v; // код не принят — остаёмся без прокси
+    }
   }
   await chrome.proxy.settings.set({ value: proxyValue(s.mode), scope: "regular" });
   await chrome.storage.local.set({ connected: true });

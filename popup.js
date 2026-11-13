@@ -58,7 +58,7 @@ function showError(text) {
 
 function showChecking() {
   status.className = "status off";
-  statusText.textContent = "Проверяем ссылку…";
+  statusText.textContent = "Проверяем доступ…";
 }
 
 // сохранять ссылку при вводе
